@@ -65,9 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: flex;
             width: 900px;
             max-width: 100%;
-            background: rgba(94, 184, 89, 0.47);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(15px);
+            background: rgba(255,255,255,.10);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border-radius: 24px;
             overflow: hidden;
             box-shadow: 0 30px 80px rgba(0,0,0,0.3);
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .login-left {
             flex: 1;
-            background: rgba(4, 36, 9, 0.57);
+            background: linear-gradient(160deg, rgba(6,48,18,.92), rgba(20,92,44,.82));
             padding: 50px 40px;
             display: flex;
             flex-direction: column;
@@ -85,12 +85,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .login-left::before {
-            content: '';
-            position: absolute;
-            width: 300px; height: 300px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.05);
-            top: -80px; right: -80px;
+            content:'';
+            position:absolute;
+            width:360px;height:360px;
+            border-radius:50%;
+            background:rgba(255,255,255,.08);
+            top:-120px;right:-120px;
+            filter:blur(8px);
         }
 
         .login-left::after {
@@ -126,7 +127,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 14px;
         }
 
-        .feature-item {
+         .feature-item {background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);padding:12px 14px;border-radius:14px;
+
             display: flex;
             align-items: center;
             gap: 12px;
@@ -134,8 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .feature-item .icon {
-            width: 38px; height: 38px;
-            background: rgba(255,255,255,0.15);
+            width:44px;height:44px;
+            background:rgba(255,255,255,.12);
             border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
             font-size: 18px;
@@ -365,9 +367,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
 
+
             <button type="submit" class="btn-login">
                 <i class="bi bi-shield-check me-2"></i>Sign In Securely
             </button>
+
+            <div class="text-center mt-2">
+                <small><a href="forgot_password.php" class="register-link">Forgot Password?</a></small>
+            </div>
+
             <div class="text-center mt-3" id="registerLink"><small>New here? <a href="register.php" class="register-link">Create a New Account</a></small></div>
         </form>
     </div>
