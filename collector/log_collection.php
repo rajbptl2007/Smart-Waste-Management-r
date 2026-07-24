@@ -16,17 +16,34 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $notes    = sanitize($_POST['notes']);
     $status   = sanitize($_POST['status']);
 
-    $stmt = $conn->prepare("INSERT INTO collection_logs (route_id,bin_id,vehicle_id,collector_id,collected_weight_kg,before_fill_percent,after_fill_percent,notes,status) VALUES (?,?,?,?,?,?,?,?,?)");
     $route_id_val = $route_id === 'NULL' ? null : (int)$route_id;
     $vehicle_id_val = $vehicle_id === 'NULL' ? null : (int)$vehicle_id;
-    $stmt->bind_param('iiiidiiss', $route_id_val, $bin_id, $vehicle_id_val, $uid, $weight, $before, $after, $notes, $status);
-    
-    if ($stmt->execute()) {
-        // Update bin fill level
-        $conn->query("UPDATE waste_bins SET current_fill_percent=$after, last_collected=NOW(), status=IF($after>=90,'full','active') WHERE id=$bin_id");
-        $msg='Collection logged successfully!'; $msgType='success';
+
+    // BUG-006 FIX: Prevent duplicate collection entries for the same bin
+    // and route on the same collection date.
+    $dupFound = false;
+    if ($route_id_val) {
+        $chk = $conn->prepare("SELECT id FROM collection_logs WHERE route_id=? AND bin_id=? AND DATE(collection_date)=CURDATE()");
+        $chk->bind_param('ii', $route_id_val, $bin_id);
+        $chk->execute();
+        if ($chk->get_result()->num_rows > 0) $dupFound = true;
+    }
+
+    if ($dupFound) {
+        $msg = 'A collection for this bin on this route has already been logged today.'; $msgType = 'warning';
     } else {
-        $msg='Error: '.$conn->error; $msgType='danger';
+        $stmt = $conn->prepare("INSERT INTO collection_logs (route_id,bin_id,vehicle_id,collector_id,collected_weight_kg,before_fill_percent,after_fill_percent,notes,status) VALUES (?,?,?,?,?,?,?,?,?)");
+        $stmt->bind_param('iiiidiiss', $route_id_val, $bin_id, $vehicle_id_val, $uid, $weight, $before, $after, $notes, $status);
+
+        if ($stmt->execute()) {
+            // Update bin fill level
+            $upd = $conn->prepare("UPDATE waste_bins SET current_fill_percent=?, last_collected=NOW(), status=IF(?>=90,'full','active') WHERE id=?");
+            $upd->bind_param('iii', $after, $after, $bin_id);
+            $upd->execute();
+            $msg='Collection logged successfully!'; $msgType='success';
+        } else {
+            $msg='Error: '.$conn->error; $msgType='danger';
+        }
     }
 }
 

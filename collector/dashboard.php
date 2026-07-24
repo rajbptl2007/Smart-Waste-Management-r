@@ -49,6 +49,34 @@ include '../includes/topbar.php';
     <?php endforeach; ?>
 </div>
 
+<!-- My Routes Today -->
+<div class="data-table mb-4">
+    <div class="table-header">
+        <h6>🗺️ My Active Routes</h6>
+        <a href="my_routes.php" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="p-3">
+        <?php if (empty($myRoutes)): ?>
+        <div class="text-center text-muted py-4">
+            <i class="bi bi-map fs-2 d-block mb-2"></i>
+            No Assigned Routes — contact your admin to get a route assigned.
+        </div>
+        <?php else: ?>
+        <div class="row g-3">
+            <?php foreach ($myRoutes as $r): ?>
+            <div class="col-md-4">
+                <div class="p-3 rounded-3" style="border:1px solid #e5e7eb;background:#f9fafb">
+                    <div class="fw-bold" style="font-size:14px"><?= htmlspecialchars($r['route_name']) ?></div>
+                    <div style="font-size:12px;color:#6b7280"><?= htmlspecialchars($r['area'] ?? '') ?></div>
+                    <div style="font-size:12px;color:#6b7280">🚛 <?= htmlspecialchars($r['vehicle_number'] ?? 'No vehicle') ?></div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+
 <div class="row g-3">
     <!-- Full Bins Alert -->
     <div class="col-md-6">

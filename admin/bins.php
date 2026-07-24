@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $area        = sanitize($_POST['area']);
         $capacity    = (int)$_POST['capacity_liters'];
         $fill        = (int)$_POST['current_fill_percent'];
-        $bin_type    = sanitize($_POST['bin_type']);
+        $bin_type    = strtolower(trim(sanitize($_POST['bin_type'])));
         $status      = sanitize($_POST['status']);
 
         if ($action === 'add') {
@@ -124,15 +124,31 @@ include '../includes/topbar.php';
                     $cl = getBinStatusClass($bin['current_fill_percent']);
                     $colors = ['success'=>'#1a7a4c','warning'=>'#f0a500','danger'=>'#e53935'];
                     $color = $colors[$cl];
-                    $typeEmoji = ['general'=>'🗑️','recyclable'=>'♻️','organic'=>'🌿','hazardous'=>'☣️'];
                     $statusBadge = ['active'=>'success','full'=>'danger','maintenance'=>'warning','inactive'=>'secondary'];
+                    
+                    // Robust detection for bin type and emoji
+                    $rawType = strtolower(trim($bin['bin_type'] ?? ''));
+
+                    if (strpos($rawType, 'organ') !== false) {
+                        $emoji = '🌿';
+                        $displayType = 'Organic';
+                    } elseif (strpos($rawType, 'recycl') !== false) {
+                        $emoji = '♻️';
+                        $displayType = 'Recyclable';
+                    } elseif (strpos($rawType, 'hazard') !== false) {
+                        $emoji = '☣️';
+                        $displayType = 'Hazardous';
+                    } else {
+                        $emoji = '🗑️';
+                        $displayType = !empty($rawType) ? ucfirst($rawType) : 'General';
+                    }
                 ?>
                 <tr>
                     <td><?= $i+1 ?></td>
                     <td><strong><?= $bin['bin_code'] ?></strong></td>
                     <td><?= htmlspecialchars($bin['location_name']) ?></td>
                     <td><span class="badge bg-light text-dark"><?= htmlspecialchars($bin['area']) ?></span></td>
-                    <td><?= $typeEmoji[$bin['bin_type']] ?? '' ?> <?= ucfirst($bin['bin_type']) ?></td>
+                    <td><?= $emoji ?> <?= htmlspecialchars($displayType) ?></td>
                     <td>
                         <div class="d-flex align-items-center gap-2">
                             <div class="fill-bar" style="width:80px">
@@ -143,7 +159,7 @@ include '../includes/topbar.php';
                     </td>
                     <td><?= $bin['capacity_liters'] ?>L</td>
                     <td>
-                        <span class="badge bg-<?= $statusBadge[$bin['status']] ?>-subtle text-<?= $statusBadge[$bin['status']] ?> status-badge">
+                        <span class="badge bg-<?= $statusBadge[$bin['status']] ?? 'secondary' ?>-subtle text-<?= $statusBadge[$bin['status']] ?? 'secondary' ?> status-badge">
                             <?= ucfirst($bin['status']) ?>
                         </span>
                     </td>

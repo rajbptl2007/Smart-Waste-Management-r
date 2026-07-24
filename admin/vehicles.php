@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'add' || $action === 'edit') {
-        $vnum   = sanitize($_POST['vehicle_number']);
+        $vnum   = strtoupper(trim(sanitize($_POST['vehicle_number'])));
         $vtype  = sanitize($_POST['vehicle_type']);
         $cap    = (float)$_POST['capacity_tons'];
         $driver = sanitize($_POST['driver_name']);
@@ -17,7 +17,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = sanitize($_POST['status']);
         $fuel   = sanitize($_POST['fuel_type']);
 
-        if ($action === 'add') {
+        // BUG-004 FIX: validate vehicle registration number format
+        // Expected Indian format, e.g. MH12AB1234
+        if (!preg_match('/^[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}$/', $vnum)) {
+            $msg = 'Invalid vehicle registration number format. Expected format like MH12AB1234.';
+            $msgType = 'danger';
+        } elseif ($action === 'add') {
             $stmt = $conn->prepare("INSERT INTO vehicles (vehicle_number,vehicle_type,capacity_tons,driver_name,driver_phone,status,fuel_type) VALUES (?,?,?,?,?,?,?)");
             $stmt->bind_param('ssdssss', $vnum,$vtype,$cap,$driver,$phone,$status,$fuel);
             if ($stmt->execute()) { $msg='Vehicle added!'; $msgType='success'; }
@@ -137,7 +142,7 @@ include '../includes/topbar.php';
                 <div class="modal-body">
                     <input type="hidden" name="action" value="add">
                     <div class="row g-3">
-                        <div class="col-6"><label class="form-label">Vehicle Number *</label><input type="text" name="vehicle_number" class="form-control" required></div>
+                        <div class="col-6"><label class="form-label">Vehicle Number *</label><input type="text" name="vehicle_number" class="form-control" style="text-transform:uppercase" required pattern="[A-Za-z]{2}[0-9]{1,2}[A-Za-z]{1,3}[0-9]{4}" title="Format like MH12AB1234" placeholder="e.g. MH12AB1234"></div>
                         <div class="col-6"><label class="form-label">Vehicle Type</label><input type="text" name="vehicle_type" class="form-control" value="Garbage Truck"></div>
                         <div class="col-6"><label class="form-label">Capacity (tons)</label><input type="number" name="capacity_tons" class="form-control" value="5" step="0.5"></div>
                         <div class="col-6"><label class="form-label">Fuel Type</label>
@@ -177,7 +182,7 @@ include '../includes/topbar.php';
                     <input type="hidden" name="action" value="edit">
                     <input type="hidden" name="vehicle_id" id="ev_id">
                     <div class="row g-3">
-                        <div class="col-6"><label class="form-label">Vehicle Number</label><input type="text" name="vehicle_number" id="ev_num" class="form-control" required></div>
+                        <div class="col-6"><label class="form-label">Vehicle Number</label><input type="text" name="vehicle_number" id="ev_num" class="form-control" style="text-transform:uppercase" required pattern="[A-Za-z]{2}[0-9]{1,2}[A-Za-z]{1,3}[0-9]{4}" title="Format like MH12AB1234"></div>
                         <div class="col-6"><label class="form-label">Vehicle Type</label><input type="text" name="vehicle_type" id="ev_type" class="form-control"></div>
                         <div class="col-6"><label class="form-label">Capacity (tons)</label><input type="number" name="capacity_tons" id="ev_cap" class="form-control" step="0.5"></div>
                         <div class="col-6"><label class="form-label">Fuel Type</label>

@@ -15,10 +15,38 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $time    = sanitize($_POST['schedule_time']);
         $status  = sanitize($_POST['status']);
         $notes   = sanitize($_POST['notes']);
-        $vid     = $vid ?: 'NULL';
-        $cid     = $cid ?: 'NULL';
-        if ($conn->query("INSERT INTO collection_routes (route_name,area,assigned_vehicle_id,assigned_collector_id,schedule_day,schedule_time,status,notes) VALUES ('$name','$area',$vid,$cid,'$day','$time','$status','$notes')")) {
-            $msg='Route added!'; $msgType='success';
+        $vidVal  = $vid ?: null;
+        $cidVal  = $cid ?: null;
+
+        // BUG-005 FIX: Prevent duplicate route assignments for the same
+        // vehicle or collector on the same day/time slot.
+        $dupFound = false;
+        if ($vidVal) {
+            $chk = $conn->prepare("SELECT id FROM collection_routes WHERE assigned_vehicle_id=? AND schedule_day=? AND schedule_time<=>? AND status='active'");
+            $chk->bind_param('iss', $vidVal, $day, $time);
+            $chk->execute();
+            if ($chk->get_result()->num_rows > 0) $dupFound = true;
+        }
+        if (!$dupFound && $cidVal) {
+            $chk = $conn->prepare("SELECT id FROM collection_routes WHERE assigned_collector_id=? AND schedule_day=? AND schedule_time<=>? AND status='active'");
+            $chk->bind_param('iss', $cidVal, $day, $time);
+            $chk->execute();
+            if ($chk->get_result()->num_rows > 0) $dupFound = true;
+        }
+
+        if ($dupFound) {
+            $msg = 'This vehicle or collector is already assigned to another active route at the same day and time.';
+            $msgType = 'danger';
+        } else {
+            // BUG-002 FIX: use a prepared statement instead of concatenating
+            // user input directly into the SQL string.
+            $stmt = $conn->prepare("INSERT INTO collection_routes (route_name,area,assigned_vehicle_id,assigned_collector_id,schedule_day,schedule_time,status,notes) VALUES (?,?,?,?,?,?,?,?)");
+            $stmt->bind_param('ssiissss', $name, $area, $vidVal, $cidVal, $day, $time, $status, $notes);
+            if ($stmt->execute()) {
+                $msg='Route added!'; $msgType='success';
+            } else {
+                $msg='Error: '.$conn->error; $msgType='danger';
+            }
         }
     } elseif ($action === 'delete') {
         $id = (int)$_POST['route_id'];

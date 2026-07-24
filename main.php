@@ -8,6 +8,11 @@ if (isLoggedIn()) {
 $error = '';
 $success = '';
 
+if (!empty($_SESSION['timeout_message'])) {
+    $error = $_SESSION['timeout_message'];
+    unset($_SESSION['timeout_message']);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = sanitize($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -27,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_name']  = $user['full_name'];
             $_SESSION['user_email'] = $user['email'];
             $_SESSION['user_role']  = $user['role'];
+            $_SESSION['last_activity'] = time();
             redirectByRole();
         } else {
             $error = 'Invalid email or password. Please try again.';
@@ -356,7 +362,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
 
-            <div class="mb-4">
+            <div class="mb-5">
                 <label class="form-label">Password</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-lock"></i></span>
@@ -381,10 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
-document.querySelectorAll(".role-card").forEach(c=>c.onclick=function(){document.querySelectorAll(".role-card").forEach(x=>x.classList.remove("active"));this.classList.add("active");this.querySelector("input").checked=true;});
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 
 document.querySelectorAll(".role-card").forEach(c=>c.onclick=function(){

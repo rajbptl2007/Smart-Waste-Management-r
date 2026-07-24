@@ -9,14 +9,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     if ($action === 'add') {
         $name   = sanitize($_POST['full_name']);
         $email  = sanitize($_POST['email']);
-        $pass   = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        $rawPass = $_POST['password'] ?? '';
         $role   = sanitize($_POST['role']);
         $phone  = sanitize($_POST['phone']);
         $addr   = sanitize($_POST['address']);
-        $stmt = $conn->prepare("INSERT INTO users (full_name,email,password,role,phone,address) VALUES (?,?,?,?,?,?)");
-        $stmt->bind_param('ssssss',$name,$email,$pass,$role,$phone,$addr);
-        if ($stmt->execute()) { $msg='User added!'; $msgType='success'; }
-        else { $msg='Error: '.$conn->error; $msgType='danger'; }
+        if (!isStrongPassword($rawPass)) {
+            $msg = passwordPolicyMessage(); $msgType = 'danger';
+        } else {
+            $pass = password_hash($rawPass, PASSWORD_DEFAULT);
+            $stmt = $conn->prepare("INSERT INTO users (full_name,email,password,role,phone,address) VALUES (?,?,?,?,?,?)");
+            $stmt->bind_param('ssssss',$name,$email,$pass,$role,$phone,$addr);
+            if ($stmt->execute()) { $msg='User added!'; $msgType='success'; }
+            else { $msg='Error: '.$conn->error; $msgType='danger'; }
+        }
     } elseif ($action === 'toggle') {
         $id = (int)$_POST['user_id'];
         $conn->query("UPDATE users SET status=IF(status='active','inactive','active') WHERE id=$id");
@@ -30,9 +35,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     }
 }
 
-$filterRole = sanitize($_GET['role'] ?? '');
-$where = $filterRole ? "WHERE role='$filterRole'" : '';
-$users = $conn->query("SELECT * FROM users $where ORDER BY created_at DESC")->fetch_all(MYSQLI_ASSOC);
+$allowedRoles = ['admin', 'collector', 'resident'];
+$filterRole = $_GET['role'] ?? '';
+if ($filterRole !== '' && in_array($filterRole, $allowedRoles, true)) {
+    $stmt = $conn->prepare("SELECT * FROM users WHERE role=? ORDER BY created_at DESC");
+    $stmt->bind_param('s', $filterRole);
+    $stmt->execute();
+    $users = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+} else {
+    $filterRole = '';
+    $users = $conn->query("SELECT * FROM users ORDER BY created_at DESC")->fetch_all(MYSQLI_ASSOC);
+}
 
 include '../includes/header.php';
 include '../includes/sidebar.php';
@@ -111,7 +124,7 @@ include '../includes/topbar.php';
                     <div class="row g-3">
                         <div class="col-12"><label class="form-label">Full Name *</label><input type="text" name="full_name" class="form-control" required></div>
                         <div class="col-12"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" required></div>
-                        <div class="col-6"><label class="form-label">Password *</label><input type="password" name="password" class="form-control" required minlength="6"></div>
+                        <div class="col-6"><label class="form-label">Password *</label><input type="password" name="password" class="form-control" required minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="At least 8 characters, including uppercase, lowercase, number, and special character."><small class="text-muted">Min 8 chars incl. uppercase, lowercase, number &amp; special character.</small></div>
                         <div class="col-6"><label class="form-label">Role</label>
                             <select name="role" class="form-select">
                                 <option value="resident">Resident</option>
